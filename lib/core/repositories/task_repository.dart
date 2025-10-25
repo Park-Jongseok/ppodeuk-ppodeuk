@@ -1,4 +1,5 @@
 import 'package:template/core/database/database_helper.dart';
+import 'package:template/features/ppodeuk_ppodeuk/models/task.dart';
 
 /// 청소/할일(Task) 데이터를 다루는 레포지토리
 class TaskRepository {
@@ -13,18 +14,28 @@ class TaskRepository {
   }
 
   /// 사용자 권한에 기반해 태스크 목록을 조회합니다.
-  Future<List<Map<String, dynamic>>> getTasks({
+  Future<List<Task>> getTasks({
     required int userId,
     int? spaceId,
     int? assignedUserId,
     bool includeCompleted = true,
-  }) {
-    return _databaseHelper.getTasks(
+  }) async {
+    final taskMaps = await _databaseHelper.getTasks(
       userId: userId,
       spaceId: spaceId,
       assignedUserId: assignedUserId,
       includeCompleted: includeCompleted,
     );
+    return taskMaps.map((taskMap) => Task.fromJson(taskMap)).toList();
+  }
+
+  /// 특정 태스크 정보를 조회합니다.
+  Future<Task?> getTask(int id) async {
+    final taskMap = await _databaseHelper.getTask(id);
+    if (taskMap != null) {
+      return Task.fromJson(taskMap);
+    }
+    return null;
   }
 
   /// 태스크 정보를 갱신합니다.

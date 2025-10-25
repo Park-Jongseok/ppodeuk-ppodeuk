@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:template/core/controllers/theme_controller.dart';
 import 'package:template/core/themes/app_theme.dart';
-import 'package:template/features/ppodeuk_ppodeuk/screens/ppodeuk_screen.dart';
+import 'package:template/features/ppodeuk_ppodeuk/screens/main_screen.dart';
 import 'package:template/setup.dart';
 
 /// 앱 시작점
@@ -53,7 +53,7 @@ class MyApp extends ConsumerWidget {
       locale: context.locale,
       supportedLocales: context.supportedLocales,
       localizationsDelegates: context.localizationDelegates,
-      home: const PpodeukScreen(),
+      home: const MainScreen(),
     );
   }
 }

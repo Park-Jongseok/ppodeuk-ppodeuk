@@ -393,6 +393,18 @@ class DatabaseHelper {
     );
   }
 
+  /// 특정 태스크 정보를 조회합니다.
+  Future<Map<String, dynamic>?> getTask(int id) async {
+    final db = await database;
+    final results = await db.query(
+      'Tasks',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
+
   /// 태스크를 삭제합니다.
   ///
   /// [id]에 해당하는 태스크를 삭제합니다.
