@@ -17,7 +17,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final _scoreService = ScoreService();
   Map<int, int> _calculatedScores = {};
-  bool _isCalculatingScores = false;
 
   @override
   void initState() {
@@ -33,10 +32,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<void> _calculateAllScores() async {
-    setState(() {
-      _isCalculatingScores = true;
-    });
-
     final spaces = ref.read(spaceControllerProvider).spaces;
     final scores = <int, int>{};
 
@@ -49,7 +44,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (mounted) {
       setState(() {
         _calculatedScores = scores;
-        _isCalculatingScores = false;
       });
     }
   }

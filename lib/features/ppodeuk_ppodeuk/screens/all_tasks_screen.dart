@@ -114,8 +114,7 @@ class _AllTasksScreenState extends ConsumerState<AllTasksScreen> {
             }
 
             final spacesById = {
-              for (final space in spaceState.spaces)
-                int.parse(space.id): space,
+              for (final space in spaceState.spaces) int.parse(space.id): space,
             };
 
             return ListView(
@@ -227,7 +226,9 @@ class _AllTasksScreenState extends ConsumerState<AllTasksScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: colors.primary.withValues(
-                  alpha: spaceTasks.any((task) => !task.isCompleted) ? 0.05 : 0.08,
+                  alpha: spaceTasks.any((task) => !task.isCompleted)
+                      ? 0.05
+                      : 0.08,
                 ),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
@@ -253,14 +254,16 @@ class _AllTasksScreenState extends ConsumerState<AllTasksScreen> {
               ),
             ),
             Column(
-              children: spaceTasks.map((task) {
-                return TaskListTile(
-                  task: task,
-                  space: space,
-                  onEdit: () => _navigateToTaskForm(task),
-                  showCompletionControl: false,
-                );
-              }).toList(),
+              children: [
+                for (var i = 0; i < spaceTasks.length; i++)
+                  TaskListTile(
+                    task: spaceTasks[i],
+                    space: space,
+                    onEdit: () => _navigateToTaskForm(spaceTasks[i]),
+                    showCompletionControl: false,
+                    showBottomDivider: i != spaceTasks.length - 1,
+                  ),
+              ],
             ),
           ],
         ),

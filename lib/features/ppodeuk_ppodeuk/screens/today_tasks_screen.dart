@@ -48,8 +48,35 @@ class _TodayTasksScreenState extends ConsumerState<TodayTasksScreen> {
     await future;
   }
 
+  Future<bool> _confirmCompletion(Task task) async {
+    if (!mounted) return false;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('청소 완료 확인'),
+          content: Text('오늘의 청소 "${task.name}"을(를) 완료했나요?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('취소'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('완료'),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
+  }
+
   Future<void> _handleCompletionChanged(Task task, bool? value) async {
     if (value == null) return;
+    if (value && !(await _confirmCompletion(task))) {
+      return;
+    }
     setState(() {
       _updatingTaskIds.add(task.id);
     });
@@ -301,17 +328,17 @@ class _TodayTasksScreenState extends ConsumerState<TodayTasksScreen> {
             ),
           ),
           Column(
-            children: tasks.map((task) {
-              final space = spacesById[task.spaceId] ?? kUnknownSpace;
-              final isUpdating = _updatingTaskIds.contains(task.id);
-              return TaskListTile(
-                task: task,
-                space: space,
-                isUpdating: isUpdating,
-                onCompletionChanged: (value) =>
-                    _handleCompletionChanged(task, value),
-              );
-            }).toList(),
+            children: [
+              for (var i = 0; i < tasks.length; i++)
+                TaskListTile(
+                  task: tasks[i],
+                  space: spacesById[tasks[i].spaceId] ?? kUnknownSpace,
+                  isUpdating: _updatingTaskIds.contains(tasks[i].id),
+                  onCompletionChanged: (value) =>
+                      _handleCompletionChanged(tasks[i], value),
+                  showBottomDivider: i != tasks.length - 1,
+                ),
+            ],
           ),
         ],
       ),

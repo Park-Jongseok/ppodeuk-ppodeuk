@@ -22,6 +22,7 @@ class TaskListTile extends StatelessWidget {
     this.onTap,
     this.onCompletionChanged,
     this.showCompletionControl = true,
+    this.showBottomDivider = true,
   });
 
   /// 표시할 할 일
@@ -45,85 +46,109 @@ class TaskListTile extends StatelessWidget {
   /// 완료 체크박스를 보여줄지 여부
   final bool showCompletionControl;
 
+  /// 항목 하단에 구분선을 표시할지 여부
+  final bool showBottomDivider;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final startDate = task.startDate;
+    final theme = Theme.of(context);
+    final separatorOpacity = theme.brightness == Brightness.dark ? 0.3 : 0.12;
+    final separatorColor = theme.colorScheme.outlineVariant.withOpacity(
+      separatorOpacity,
+    );
 
-    return ListTile(
-      onTap: onTap,
-      leading: showCompletionControl
-          ? AnimatedSwitcher(
-              duration: const Duration(milliseconds: 150),
-              child: isUpdating
-                  ? SizedBox(
-                      key: ValueKey('task-loader-${task.id}-${task.hashCode}'),
-                      width: 24,
-                      height: 24,
-                      child: const CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Checkbox(
-                      key: ValueKey(
-                        'task-checkbox-${task.id}-${task.hashCode}',
-                      ),
-                      value: task.isCompleted,
-                      onChanged: onCompletionChanged,
-                    ),
-            )
-          : null,
-      title: Text(
-        task.name,
-        style: AppTypography.body.copyWith(
-          decoration: task.isCompleted ? TextDecoration.lineThrough : null,
-          color: task.isCompleted ? colors.textSecondary : colors.textPrimary,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: showBottomDivider
+            ? Border(
+                bottom: BorderSide(
+                  color: separatorColor,
+                ),
+              )
+            : null,
+      ),
+      child: ListTile(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
         ),
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 4),
-          Text(
-            '📍 ${space.name}',
-            style: AppTypography.caption.copyWith(
-              color: colors.primary,
-              fontWeight: FontWeight.w500,
-            ),
+        onTap: onTap,
+        leading: showCompletionControl
+            ? AnimatedSwitcher(
+                duration: const Duration(milliseconds: 150),
+                child: isUpdating
+                    ? SizedBox(
+                        key: ValueKey(
+                          'task-loader-${task.id}-${task.hashCode}',
+                        ),
+                        width: 24,
+                        height: 24,
+                        child: const CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Checkbox(
+                        key: ValueKey(
+                          'task-checkbox-${task.id}-${task.hashCode}',
+                        ),
+                        value: task.isCompleted,
+                        onChanged: onCompletionChanged,
+                      ),
+              )
+            : null,
+        title: Text(
+          task.name,
+          style: AppTypography.body.copyWith(
+            decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+            color: task.isCompleted ? colors.textSecondary : colors.textPrimary,
           ),
-          const SizedBox(height: 2),
-          Row(
-            children: [
-              Text(
-                '중요도: ${task.importance.displayName}',
-                style: AppTypography.caption.copyWith(
-                  color: colors.textSecondary,
-                ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              '📍 ${space.name}',
+              style: AppTypography.caption.copyWith(
+                color: colors.primary,
+                fontWeight: FontWeight.w500,
               ),
-              const SizedBox(width: 8),
-              Text(
-                '주기: ${task.period.displayName}',
-                style: AppTypography.caption.copyWith(
-                  color: colors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            startDate != null ? '시작: ${_formatDate(startDate)}' : '시작: 미설정',
-            style: AppTypography.caption.copyWith(
-              color: startDate != null && _isOverdue(startDate)
-                  ? colors.error
-                  : colors.textSecondary,
             ),
-          ),
-        ],
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                Text(
+                  '중요도: ${task.importance.displayName}',
+                  style: AppTypography.caption.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '주기: ${task.period.displayName}',
+                  style: AppTypography.caption.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              startDate != null ? '시작: ${_formatDate(startDate)}' : '시작: 미설정',
+              style: AppTypography.caption.copyWith(
+                color: startDate != null && _isOverdue(startDate)
+                    ? colors.error
+                    : colors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        trailing: onEdit != null
+            ? IconButton(
+                icon: const Icon(Icons.edit, size: 20),
+                onPressed: onEdit,
+              )
+            : null,
       ),
-      trailing: onEdit != null
-          ? IconButton(
-              icon: const Icon(Icons.edit, size: 20),
-              onPressed: onEdit,
-            )
-          : null,
     );
   }
 
