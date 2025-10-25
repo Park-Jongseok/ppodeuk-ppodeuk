@@ -17,6 +17,7 @@ class ScoreService {
   ///
   /// [spaceId]에 해당하는 공간의 완료되지 않은 할 일들을 조회하여
   /// 중요도에 따라 점수를 차감하는 방식으로 계산합니다.
+  /// 시작일이 오늘이거나 이전인 미완료 작업만 점수를 차감합니다.
   /// 점수는 100점에서 시작하며, 0점 미만으로 내려가지 않습니다.
   Future<int> calculateSpaceScore(int spaceId) async {
     // MVP에서는 기본 사용자를 기준으로 작업을 조회합니다.
@@ -28,9 +29,26 @@ class ScoreService {
       includeCompleted: false,
     );
 
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
     var openPoints = 0;
     for (final task in tasks) {
-      openPoints += _getPointsForImportance(task.importance);
+      // 시작일이 없으면 점수 차감 안 함
+      if (task.startDate == null) {
+        continue;
+      }
+
+      final startDate = DateTime(
+        task.startDate!.year,
+        task.startDate!.month,
+        task.startDate!.day,
+      );
+
+      // 시작일이 오늘이거나 이전인 경우만 점수 차감
+      if (startDate.isAtSameMomentAs(today) || startDate.isBefore(today)) {
+        openPoints += _getPointsForImportance(task.importance);
+      }
     }
 
     final score = 100 - openPoints;
