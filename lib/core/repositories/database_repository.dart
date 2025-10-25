@@ -7,11 +7,6 @@ class DatabaseRepository {
 
   final DatabaseHelper _databaseHelper;
 
-  /// MVP 환경에서 기본 사용자 ID를 반환합니다.
-  Future<int> getDefaultUserId() {
-    return _databaseHelper.getDefaultUserId();
-  }
-
   /// MVP 환경에서 기본 사용자가 접근 가능한 공간 목록을 반환합니다.
   Future<List<Map<String, dynamic>>> getDefaultUserSpaces() {
     return _databaseHelper.getDefaultUserSpaces();

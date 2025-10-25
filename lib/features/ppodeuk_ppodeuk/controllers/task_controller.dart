@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:template/core/controllers/user_controller.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/importance.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/period.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/task.dart';
@@ -50,8 +51,8 @@ class TaskController extends Notifier<TaskControllerState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final tasksData = await _taskService.getTasks();
-      final tasks = tasksData.map((data) => Task.fromJson(data)).toList();
+      final defaultUserId = await ref.read(defaultUserIdProvider.future);
+      final tasks = await _taskService.getTasks(userId: defaultUserId);
       state = state.copyWith(tasks: tasks, isLoading: false);
     } catch (e) {
       state = state.copyWith(

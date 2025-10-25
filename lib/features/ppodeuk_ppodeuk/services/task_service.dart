@@ -1,5 +1,6 @@
 import 'package:template/core/repositories/task_repository.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/importance.dart';
+import 'package:template/features/ppodeuk_ppodeuk/models/task.dart';
 import 'package:template/features/ppodeuk_ppodeuk/services/score_service.dart';
 
 /// 할 일(Task) 관련 비즈니스 로직을 처리하는 서비스
@@ -36,7 +37,7 @@ class TaskService {
     // 총 포인트가 100을 초과하는지 확인
     if (openPoints + newTaskPoints > 100) {
       throw Exception(
-        '해당 공간의 남은 점수가 부족합니다. 현재 남은 점수: ${100 - openPoints}점, 필요한 점수: ${newTaskPoints}점',
+        '해당 공간의 남은 점수가 부족합니다. 현재 남은 점수: ${100 - openPoints}점, 필요한 점수: $newTaskPoints점',
       );
     }
   }
@@ -111,7 +112,17 @@ class TaskService {
   /// 모든 할 일 목록을 가져옵니다.
   ///
   /// 현재는 기본 사용자 ID를 사용합니다.
-  Future<List<dynamic>> getTasks() {
-    return _taskRepository.getTasks(userId: 1); // 임시로 userId 1 사용
+  Future<List<Task>> getTasks({
+    required int userId,
+    int? spaceId,
+    int? assignedUserId,
+    bool includeCompleted = true,
+  }) {
+    return _taskRepository.getTasks(
+      userId: userId,
+      spaceId: spaceId,
+      assignedUserId: assignedUserId,
+      includeCompleted: includeCompleted,
+    );
   }
 }

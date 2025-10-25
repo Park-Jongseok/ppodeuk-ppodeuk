@@ -26,9 +26,4 @@ class SpaceRepository {
   Future<int> deleteSpace(int id) {
     return _databaseHelper.deleteSpace(id);
   }
-
-  /// 기본 사용자 ID를 반환합니다.
-  Future<int> getDefaultUserId() {
-    return _databaseHelper.getDefaultUserId();
-  }
 }

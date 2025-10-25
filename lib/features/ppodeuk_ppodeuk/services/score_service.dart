@@ -1,4 +1,3 @@
-import 'package:template/core/database/database_helper.dart';
 import 'package:template/core/repositories/space_repository.dart';
 import 'package:template/core/repositories/task_repository.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/importance.dart';
@@ -6,14 +5,11 @@ import 'package:template/features/ppodeuk_ppodeuk/models/importance.dart';
 /// 공간의 점수를 계산하고 업데이트하는 서비스 클래스
 class ScoreService {
   ScoreService({
-    DatabaseHelper? databaseHelper,
     TaskRepository? taskRepository,
     SpaceRepository? spaceRepository,
-  }) : _databaseHelper = databaseHelper ?? DatabaseHelper.instance,
-       _taskRepository = taskRepository ?? TaskRepository(),
+  }) : _taskRepository = taskRepository ?? TaskRepository(),
        _spaceRepository = spaceRepository ?? SpaceRepository();
 
-  final DatabaseHelper _databaseHelper;
   final TaskRepository _taskRepository;
   final SpaceRepository _spaceRepository;
 
@@ -24,7 +20,7 @@ class ScoreService {
   /// 점수는 100점에서 시작하며, 0점 미만으로 내려가지 않습니다.
   Future<int> calculateSpaceScore(int spaceId) async {
     // MVP에서는 기본 사용자를 기준으로 작업을 조회합니다.
-    final defaultUserId = await _databaseHelper.getDefaultUserId();
+    const defaultUserId = 1;
 
     final tasks = await _taskRepository.getTasks(
       userId: defaultUserId,

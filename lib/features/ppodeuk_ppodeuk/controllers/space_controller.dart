@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:template/core/controllers/user_controller.dart';
 import 'package:template/core/repositories/space_repository.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/space.dart';
 
@@ -48,8 +49,8 @@ class SpaceController extends Notifier<SpaceControllerState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // 데이터베이스에서 기본 사용자 ID를 동적으로 가져옴
-      final defaultUserId = await _spaceRepository.getDefaultUserId();
+      // Provider를 통해 기본 사용자 ID를 가져옴
+      final defaultUserId = await ref.read(defaultUserIdProvider.future);
       final spacesData = await _spaceRepository.getSpacesForUser(defaultUserId);
       final spaces = spacesData.map((data) => Space.fromJson(data)).toList();
       state = state.copyWith(spaces: spaces, isLoading: false);
