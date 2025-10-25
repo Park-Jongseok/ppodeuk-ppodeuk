@@ -13,7 +13,7 @@ class Space {
   /// JSON에서 Space 객체 생성
   factory Space.fromJson(Map<String, dynamic> json) {
     return Space(
-      id: json['id'] as String,
+      id: json['id'].toString(),
       name: json['name'] as String,
       score: (json['score'] as num?)?.toInt() ?? 0,
     );
@@ -57,7 +57,10 @@ class Space {
       return true;
     }
 
-    return other is Space && other.id == id && other.name == name && other.score == score;
+    return other is Space &&
+        other.id == id &&
+        other.name == name &&
+        other.score == score;
   }
 
   @override

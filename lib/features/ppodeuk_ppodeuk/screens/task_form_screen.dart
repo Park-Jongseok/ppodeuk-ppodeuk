@@ -1,34 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:template/features/ppodeuk_ppodeuk/controllers/space_controller.dart';
+import 'package:template/features/ppodeuk_ppodeuk/controllers/task_controller.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/importance.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/period.dart';
-import 'package:template/features/ppodeuk_ppodeuk/models/space.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/task.dart';
-import 'package:template/features/ppodeuk_ppodeuk/services/task_service.dart';
 
-class TaskFormScreen extends StatefulWidget {
+class TaskFormScreen extends ConsumerStatefulWidget {
   const TaskFormScreen({super.key, this.task});
 
   final Task? task;
 
   @override
-  State<TaskFormScreen> createState() => _TaskFormScreenState();
+  ConsumerState<TaskFormScreen> createState() => _TaskFormScreenState();
 }
 
-class _TaskFormScreenState extends State<TaskFormScreen> {
+class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _taskService = TaskService();
 
   late String _name;
   late int _spaceId;
   late Importance _importance;
   late Period _period;
   DateTime? _dueDate;
-
-  // 임시 데이터
-  final List<Space> _spaces = [
-    const Space(id: '1', name: '집', score: 100),
-    const Space(id: '2', name: '회사', score: 200),
-  ];
 
   @override
   void initState() {
@@ -41,35 +35,67 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
       _dueDate = widget.task!.dueDate;
     } else {
       _name = '';
-      _spaceId = int.parse(_spaces.first.id);
+      _spaceId = 1; // 기본값, 공간 로드 후 첫 번째 공간으로 설정됨
       _importance = Importance.normal;
       _period = Period.weekly;
       _dueDate = null;
     }
+
+    // 공간 데이터 로드
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(spaceControllerProvider.notifier).loadSpaces().then((_) {
+        // 공간 로드 완료 후 첫 번째 공간을 기본값으로 설정
+        final spaceState = ref.read(spaceControllerProvider);
+        if (spaceState.spaces.isNotEmpty && widget.task == null) {
+          setState(() {
+            _spaceId = int.parse(spaceState.spaces.first.id);
+          });
+        }
+      });
+    });
   }
 
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      final taskData = {
-        'name': _name,
-        'space_id': _spaceId,
-        'importance': _importance.index,
-        'period': _period.index,
-        'due_date': _dueDate?.toIso8601String(),
-      };
+      try {
+        final taskController = ref.read(taskControllerProvider.notifier);
 
-      if (widget.task == null) {
-        // 새 할 일 추가
-        await _taskService.createTask(taskData);
-      } else {
-        // 기존 할 일 수정
-        await _taskService.updateTask(widget.task!.id, taskData);
-      }
+        if (widget.task == null) {
+          // 새 할 일 추가
+          await taskController.createTask(
+            name: _name,
+            spaceId: _spaceId,
+            importance: _importance,
+            period: _period,
+            dueDate: _dueDate,
+          );
+        } else {
+          // 기존 할 일 수정
+          await taskController.updateTask(
+            taskId: widget.task!.id,
+            name: _name,
+            spaceId: _spaceId,
+            importance: _importance,
+            period: _period,
+            dueDate: _dueDate,
+          );
+        }
 
-      if (mounted) {
-        Navigator.pop(context);
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) {
+          // 에러 메시지 표시
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString()),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -96,9 +122,22 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
     );
 
     if (confirm == true) {
-      await _taskService.deleteTask(widget.task!.id);
-      if (mounted) {
-        Navigator.pop(context);
+      try {
+        final taskController = ref.read(taskControllerProvider.notifier);
+        await taskController.deleteTask(widget.task!.id);
+
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString()),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -119,6 +158,9 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final taskState = ref.watch(taskControllerProvider);
+    final spaceState = ref.watch(spaceControllerProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.task == null ? '할 일 추가' : '할 일 수정'),
@@ -126,11 +168,17 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
           if (widget.task != null)
             IconButton(
               icon: const Icon(Icons.delete),
-              onPressed: _delete,
+              onPressed: taskState.isLoading ? null : _delete,
             ),
           IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _submit,
+            icon: taskState.isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save),
+            onPressed: taskState.isLoading ? null : _submit,
           ),
         ],
       ),
@@ -142,6 +190,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
             children: [
               TextFormField(
                 initialValue: _name,
+                enabled: !taskState.isLoading,
                 decoration: const InputDecoration(labelText: '할 일 이름'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -153,19 +202,31 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
-                value: _spaceId,
-                decoration: const InputDecoration(labelText: '공간'),
-                items: _spaces.map((space) {
+                value: spaceState.spaces.isNotEmpty ? _spaceId : null,
+                decoration: InputDecoration(
+                  labelText: '공간',
+                  hintText: spaceState.isLoading
+                      ? '공간 로딩 중...'
+                      : spaceState.spaces.isEmpty
+                      ? '공간이 없습니다'
+                      : '공간을 선택하세요',
+                ),
+                items: spaceState.spaces.map((space) {
                   return DropdownMenuItem(
                     value: int.parse(space.id),
                     child: Text(space.name),
                   );
                 }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _spaceId = value!;
-                  });
-                },
+                onChanged:
+                    (taskState.isLoading ||
+                        spaceState.isLoading ||
+                        spaceState.spaces.isEmpty)
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _spaceId = value!;
+                        });
+                      },
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<Importance>(
@@ -177,11 +238,13 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                     child: Text(importance.displayName),
                   );
                 }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _importance = value!;
-                  });
-                },
+                onChanged: taskState.isLoading
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _importance = value!;
+                        });
+                      },
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<Period>(
@@ -193,11 +256,13 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                     child: Text(period.displayName),
                   );
                 }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _period = value!;
-                  });
-                },
+                onChanged: taskState.isLoading
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _period = value!;
+                        });
+                      },
               ),
               const SizedBox(height: 16),
               Row(
@@ -210,7 +275,9 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                     ),
                   ),
                   TextButton(
-                    onPressed: () => _selectDueDate(context),
+                    onPressed: taskState.isLoading
+                        ? null
+                        : () => _selectDueDate(context),
                     child: const Text('선택'),
                   ),
                 ],

@@ -113,24 +113,27 @@ class DatabaseHelper {
       'profile_image_url': null,
     });
 
-    // 기본 공간 생성 (거실, 주방, 욕실)
-    final spaceIds = <int>[];
-    for (final spaceName in ['거실', '주방', '욕실']) {
-      final spaceId = await db.insert('Spaces', {
-        'name': spaceName,
-        'score': 100,
-      });
-      spaceIds.add(spaceId);
-    }
+    // 기본 공간 생성
+    final space1Id = await db.insert('Spaces', {'name': '주방', 'score': 100});
+    final space2Id = await db.insert('Spaces', {'name': '침실', 'score': 100});
+    final space3Id = await db.insert('Spaces', {'name': '욕실', 'score': 100});
 
-    // 기본 사용자를 모든 공간의 멤버로 등록
-    for (final spaceId in spaceIds) {
-      await db.insert('SpaceMemberships', {
-        'user_id': defaultUserId,
-        'space_id': spaceId,
-        'role': 'owner',
-      });
-    }
+    // 기본 사용자를 공간의 소유자로 멤버십 생성
+    await db.insert('SpaceMemberships', {
+      'user_id': defaultUserId,
+      'space_id': space1Id,
+      'role': 'owner',
+    });
+    await db.insert('SpaceMemberships', {
+      'user_id': defaultUserId,
+      'space_id': space2Id,
+      'role': 'owner',
+    });
+    await db.insert('SpaceMemberships', {
+      'user_id': defaultUserId,
+      'space_id': space3Id,
+      'role': 'owner',
+    });
   }
 
   // ============================================================================
