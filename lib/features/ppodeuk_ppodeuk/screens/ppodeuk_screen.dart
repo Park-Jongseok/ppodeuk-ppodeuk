@@ -48,8 +48,9 @@ class PpodeukScreen extends ConsumerWidget {
                     title: Text(
                       ppodeuk.title,
                       style: AppTypography.body.copyWith(
-                        decoration:
-                            ppodeuk.isDone ? TextDecoration.lineThrough : null,
+                        decoration: ppodeuk.isDone
+                            ? TextDecoration.lineThrough
+                            : null,
                         color: ppodeuk.isDone
                             ? colors.textSecondary
                             : colors.textPrimary,
@@ -60,7 +61,12 @@ class PpodeukScreen extends ConsumerWidget {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.edit, size: 20),
-                          onPressed: () => _showEditDialog(context, ref, ppodeuk.id, ppodeuk.title),
+                          onPressed: () => _showEditDialog(
+                            context,
+                            ref,
+                            ppodeuk.id,
+                            ppodeuk.title,
+                          ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, size: 20),
@@ -116,7 +122,12 @@ class PpodeukScreen extends ConsumerWidget {
     );
   }
 
-  void _showEditDialog(BuildContext context, WidgetRef ref, String id, String currentTitle) {
+  void _showEditDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+    String currentTitle,
+  ) {
     final controller = TextEditingController(text: currentTitle);
 
     showDialog(

@@ -1,12 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:template/features/ppodeuk_ppodeuk/models/ppodeuk.dart';
 
 /// 뽀득뽀득 리스트 상태 관리
 final ppodeukControllerProvider =
     NotifierProvider<PpodeukController, List<Ppodeuk>>(
-  PpodeukController.new,
-);
+      PpodeukController.new,
+    );
 
 /// 뽀득뽀득 리스트 컨트롤러
 class PpodeukController extends Notifier<List<Ppodeuk>> {
