@@ -55,7 +55,9 @@ class _TodayTasksScreenState extends ConsumerState<TodayTasksScreen> {
     });
 
     try {
-      await ref.read(taskControllerProvider.notifier).setTaskCompletion(
+      await ref
+          .read(taskControllerProvider.notifier)
+          .setTaskCompletion(
             taskId: task.id,
             isCompleted: value,
           );
@@ -134,8 +136,7 @@ class _TodayTasksScreenState extends ConsumerState<TodayTasksScreen> {
             final todayTasks = groupedTasks[_TodayCategory.today]!;
 
             final spacesById = {
-              for (final space in spaceState.spaces)
-                int.parse(space.id): space,
+              for (final space in spaceState.spaces) int.parse(space.id): space,
             };
 
             return ListView(
@@ -309,7 +310,6 @@ class _TodayTasksScreenState extends ConsumerState<TodayTasksScreen> {
                 isUpdating: isUpdating,
                 onCompletionChanged: (value) =>
                     _handleCompletionChanged(task, value),
-                onEdit: () => _navigateToTaskForm(task),
               );
             }).toList(),
           ),

@@ -17,7 +17,7 @@ class TaskListTile extends StatelessWidget {
     super.key,
     required this.task,
     required this.space,
-    required this.onEdit,
+    this.onEdit,
     this.isUpdating = false,
     this.onTap,
     this.onCompletionChanged,
@@ -31,7 +31,7 @@ class TaskListTile extends StatelessWidget {
   final Space space;
 
   /// 편집 버튼 콜백
-  final VoidCallback onEdit;
+  final VoidCallback? onEdit;
 
   /// 진행 중일 때 로딩 상태 표시 여부
   final bool isUpdating;
@@ -63,7 +63,9 @@ class TaskListTile extends StatelessWidget {
                       child: const CircularProgressIndicator(strokeWidth: 2),
                     )
                   : Checkbox(
-                      key: ValueKey('task-checkbox-${task.id}-${task.hashCode}'),
+                      key: ValueKey(
+                        'task-checkbox-${task.id}-${task.hashCode}',
+                      ),
                       value: task.isCompleted,
                       onChanged: onCompletionChanged,
                     ),
@@ -72,10 +74,8 @@ class TaskListTile extends StatelessWidget {
       title: Text(
         task.name,
         style: AppTypography.body.copyWith(
-          decoration:
-              task.isCompleted ? TextDecoration.lineThrough : null,
-          color:
-              task.isCompleted ? colors.textSecondary : colors.textPrimary,
+          decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+          color: task.isCompleted ? colors.textSecondary : colors.textPrimary,
         ),
       ),
       subtitle: Column(
@@ -109,9 +109,7 @@ class TaskListTile extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            startDate != null
-                ? '시작: ${_formatDate(startDate)}'
-                : '시작: 미설정',
+            startDate != null ? '시작: ${_formatDate(startDate)}' : '시작: 미설정',
             style: AppTypography.caption.copyWith(
               color: startDate != null && _isOverdue(startDate)
                   ? colors.error
@@ -120,10 +118,12 @@ class TaskListTile extends StatelessWidget {
           ),
         ],
       ),
-      trailing: IconButton(
-        icon: const Icon(Icons.edit, size: 20),
-        onPressed: onEdit,
-      ),
+      trailing: onEdit != null
+          ? IconButton(
+              icon: const Icon(Icons.edit, size: 20),
+              onPressed: onEdit,
+            )
+          : null,
     );
   }
 

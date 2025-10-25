@@ -134,6 +134,80 @@ class DatabaseHelper {
       'space_id': space3Id,
       'role': 'owner',
     });
+
+    // 테스트용 태스크 데이터 추가
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // 1. 기한 지난 청소 (3일 전)
+    await db.insert('Tasks', {
+      'name': '냉장고 청소',
+      'space_id': space1Id,
+      'importance': 1, // normal
+      'period': 0, // weekly
+      'start_date': today.subtract(const Duration(days: 3)).toIso8601String(),
+      'is_completed': 0,
+    });
+
+    // 2. 기한 지난 청소 (어제)
+    await db.insert('Tasks', {
+      'name': '화장실 청소',
+      'space_id': space3Id,
+      'importance': 2, // important
+      'period': 0, // weekly
+      'start_date': today.subtract(const Duration(days: 1)).toIso8601String(),
+      'is_completed': 0,
+    });
+
+    // 3. 오늘 해야 할 청소
+    await db.insert('Tasks', {
+      'name': '설거지',
+      'space_id': space1Id,
+      'importance': 0, // daily
+      'period': 0, // weekly
+      'start_date': today.toIso8601String(),
+      'is_completed': 0,
+    });
+
+    // 4. 오늘 해야 할 청소 (다른 공간)
+    await db.insert('Tasks', {
+      'name': '침대 정리',
+      'space_id': space2Id,
+      'importance': 0, // daily
+      'period': 0, // weekly
+      'start_date': today.toIso8601String(),
+      'is_completed': 0,
+    });
+
+    // 5. 미래 청소 (내일)
+    await db.insert('Tasks', {
+      'name': '창문 닦기',
+      'space_id': space2Id,
+      'importance': 1, // normal
+      'period': 1, // monthly
+      'start_date': today.add(const Duration(days: 1)).toIso8601String(),
+      'is_completed': 0,
+    });
+
+    // 6. 미래 청소 (1주일 후)
+    await db.insert('Tasks', {
+      'name': '에어컨 필터 청소',
+      'space_id': space3Id,
+      'importance': 1, // normal
+      'period': 1, // monthly
+      'start_date': today.add(const Duration(days: 7)).toIso8601String(),
+      'is_completed': 0,
+    });
+
+    // 7. 시작일 미설정 청소 (필터링 테스트용)
+    await db.insert('Tasks', {
+      'name': '대청소',
+      'space_id': space1Id,
+      'importance': 2, // important
+      'period': 1, // monthly
+      'start_date': null,
+      'is_completed': 0,
+    });
   }
 
   // ============================================================================
