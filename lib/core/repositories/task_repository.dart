@@ -3,6 +3,9 @@ import 'package:template/features/ppodeuk_ppodeuk/models/task.dart';
 
 /// 청소/할일(Task) 데이터를 다루는 레포지토리
 class TaskRepository {
+  /// [TaskRepository]를 생성합니다.
+  ///
+  /// [databaseHelper]를 지정하면 커스텀 데이터베이스 헬퍼를 사용할 수 있습니다.
   TaskRepository({DatabaseHelper? databaseHelper})
     : _databaseHelper = databaseHelper ?? DatabaseHelper.instance;
 
@@ -26,7 +29,7 @@ class TaskRepository {
       assignedUserId: assignedUserId,
       includeCompleted: includeCompleted,
     );
-    return taskMaps.map((taskMap) => Task.fromJson(taskMap)).toList();
+    return taskMaps.map(Task.fromJson).toList();
   }
 
   /// 특정 태스크 정보를 조회합니다.

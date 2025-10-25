@@ -11,8 +11,8 @@ class TaskService {
     TaskRepository? taskRepository,
     ScoreService? scoreService,
     StartDateService? startDateService,
-  })  : _taskRepository = taskRepository ?? TaskRepository(),
-        _scoreService = scoreService ?? ScoreService() {
+  }) : _taskRepository = taskRepository ?? TaskRepository(),
+       _scoreService = scoreService ?? ScoreService() {
     _startDateService =
         startDateService ?? StartDateService(taskRepository: _taskRepository);
   }
@@ -112,7 +112,7 @@ class TaskService {
 
     // 공간 점수 업데이트 (삭제된 청소의 공간 ID를 알아야 하지만,
     // 현재 구조에서는 공간 ID를 알 수 없으므로 전체 공간 점수를 업데이트해야 함)
-    // TODO: 청소 삭제 시 해당 공간의 점수만 업데이트하도록 개선 필요
+    // TODO(ppodeuk-team): 청소 삭제 시 해당 공간의 점수만 업데이트하도록 개선 필요
 
     return result;
   }

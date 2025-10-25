@@ -14,7 +14,8 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseHelper {
   DatabaseHelper._privateConstructor();
 
-  static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
+  /// 싱글톤 인스턴스
+  static final instance = DatabaseHelper._privateConstructor();
 
   static Database? _database;
 
@@ -22,7 +23,9 @@ class DatabaseHelper {
   ///
   /// 데이터베이스가 없으면 초기화를 수행합니다.
   Future<Database> get database async {
-    if (_database != null) return _database!;
+    if (_database != null) {
+      return _database!;
+    }
     _database = await _initDatabase();
     return _database!;
   }

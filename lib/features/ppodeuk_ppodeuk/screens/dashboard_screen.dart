@@ -8,6 +8,7 @@ import 'package:template/features/ppodeuk_ppodeuk/services/score_service.dart';
 
 /// 대시보드 화면
 class DashboardScreen extends ConsumerStatefulWidget {
+  /// [DashboardScreen]을 생성합니다.
   const DashboardScreen({super.key});
 
   @override
@@ -150,7 +151,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
 
     // 점수 기준 정렬 (낮은 순)
-    final sortedSpaces = [...spaces]..sort((a, b) => a.score.compareTo(b.score));
+    final sortedSpaces = [...spaces]
+      ..sort((a, b) => a.score.compareTo(b.score));
 
     return Scaffold(
       body: RefreshIndicator(

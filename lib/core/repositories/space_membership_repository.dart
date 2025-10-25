@@ -2,6 +2,9 @@ import 'package:template/core/database/database_helper.dart';
 
 /// 공간 멤버십 관계를 다루는 레포지토리
 class SpaceMembershipRepository {
+  /// [SpaceMembershipRepository]를 생성합니다.
+  ///
+  /// [databaseHelper]를 전달하면 의존성을 주입할 수 있습니다.
   SpaceMembershipRepository({DatabaseHelper? databaseHelper})
     : _databaseHelper = databaseHelper ?? DatabaseHelper.instance;
 

@@ -4,6 +4,9 @@ import 'package:template/features/ppodeuk_ppodeuk/models/importance.dart';
 
 /// 공간의 점수를 계산하고 업데이트하는 서비스 클래스
 class ScoreService {
+  /// [ScoreService]를 생성합니다.
+  ///
+  /// 레포지토리를 주입하여 테스트 가능하도록 설계되었습니다.
   ScoreService({
     TaskRepository? taskRepository,
     SpaceRepository? spaceRepository,

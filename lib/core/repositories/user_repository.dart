@@ -2,6 +2,9 @@ import 'package:template/core/database/database_helper.dart';
 
 /// 사용자 관련 데이터 접근을 담당하는 레포지토리
 class UserRepository {
+  /// [UserRepository]를 생성합니다.
+  ///
+  /// [databaseHelper] 주입을 통해 대체 데이터 소스를 사용할 수 있습니다.
   UserRepository({DatabaseHelper? databaseHelper})
     : _databaseHelper = databaseHelper ?? DatabaseHelper.instance;
 

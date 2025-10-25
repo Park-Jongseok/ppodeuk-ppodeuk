@@ -2,6 +2,9 @@ import 'package:template/core/database/database_helper.dart';
 
 /// 공간(Space) 관련 데이터 접근을 담당하는 레포지토리
 class SpaceRepository {
+  /// [SpaceRepository]를 생성합니다.
+  ///
+  /// 테스트 시 [databaseHelper]를 통해 의존성을 주입할 수 있습니다.
   SpaceRepository({DatabaseHelper? databaseHelper})
     : _databaseHelper = databaseHelper ?? DatabaseHelper.instance;
 

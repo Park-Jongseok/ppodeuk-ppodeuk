@@ -13,6 +13,7 @@ const kUnknownSpace = Space(
 
 /// 공통 할 일 타일 위젯
 class TaskListTile extends StatelessWidget {
+  /// 기본 생성자
   const TaskListTile({
     super.key,
     required this.task,
@@ -55,8 +56,8 @@ class TaskListTile extends StatelessWidget {
     final startDate = task.startDate;
     final theme = Theme.of(context);
     final separatorOpacity = theme.brightness == Brightness.dark ? 0.3 : 0.12;
-    final separatorColor = theme.colorScheme.outlineVariant.withOpacity(
-      separatorOpacity,
+    final separatorColor = theme.colorScheme.outlineVariant.withValues(
+      alpha: separatorOpacity,
     );
 
     return DecoratedBox(
@@ -70,9 +71,6 @@ class TaskListTile extends StatelessWidget {
             : null,
       ),
       child: ListTile(
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
         onTap: onTap,
         leading: showCompletionControl
             ? AnimatedSwitcher(

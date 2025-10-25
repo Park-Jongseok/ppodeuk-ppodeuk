@@ -8,11 +8,11 @@ import 'package:template/features/ppodeuk_ppodeuk/controllers/space_controller.d
 import 'package:template/features/ppodeuk_ppodeuk/controllers/task_controller.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/space.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/task.dart';
-import 'package:template/features/ppodeuk_ppodeuk/screens/task_form_screen.dart';
 import 'package:template/features/ppodeuk_ppodeuk/widgets/task_tile.dart';
 
 /// '오늘의 청소' 화면
 class TodayTasksScreen extends ConsumerStatefulWidget {
+  /// [TodayTasksScreen]을 생성합니다.
   const TodayTasksScreen({super.key});
 
   @override
@@ -49,7 +49,9 @@ class _TodayTasksScreenState extends ConsumerState<TodayTasksScreen> {
   }
 
   Future<bool> _confirmCompletion(Task task) async {
-    if (!mounted) return false;
+    if (!mounted) {
+      return false;
+    }
     final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -73,7 +75,9 @@ class _TodayTasksScreenState extends ConsumerState<TodayTasksScreen> {
   }
 
   Future<void> _handleCompletionChanged(Task task, bool? value) async {
-    if (value == null) return;
+    if (value == null) {
+      return;
+    }
     if (value && !(await _confirmCompletion(task))) {
       return;
     }
@@ -89,8 +93,10 @@ class _TodayTasksScreenState extends ConsumerState<TodayTasksScreen> {
             isCompleted: value,
           );
       await _refreshTasks();
-    } catch (e) {
-      if (!mounted) return;
+    } on Exception catch (e) {
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('청소 완료 상태를 변경하지 못했습니다: $e'),
@@ -104,18 +110,6 @@ class _TodayTasksScreenState extends ConsumerState<TodayTasksScreen> {
         });
       }
     }
-  }
-
-  Future<void> _navigateToTaskForm([Task? task]) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TaskFormScreen(task: task),
-      ),
-    );
-    if (!mounted) return;
-    await _refreshTasks();
-    await ref.read(spaceControllerProvider.notifier).loadSpaces();
   }
 
   @override

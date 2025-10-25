@@ -13,25 +13,34 @@ final taskControllerProvider =
 
 /// 할 일 컨트롤러 상태
 class TaskControllerState {
+  /// 상태를 생성합니다.
   const TaskControllerState({
     this.tasks = const [],
     this.isLoading = false,
     this.error,
   });
 
+  static const _unknownError = Object();
+
+  /// 로드된 청소 목록
   final List<Task> tasks;
+
+  /// 진행 중 로딩 여부
   final bool isLoading;
+
+  /// 최신 오류 메시지
   final String? error;
 
+  /// 상태를 복제하면서 선택적으로 속성을 변경합니다.
   TaskControllerState copyWith({
     List<Task>? tasks,
     bool? isLoading,
-    String? error,
+    Object? error = _unknownError,
   }) {
     return TaskControllerState(
       tasks: tasks ?? this.tasks,
       isLoading: isLoading ?? this.isLoading,
-      error: error,
+      error: identical(error, _unknownError) ? this.error : error as String?,
     );
   }
 }
@@ -54,7 +63,7 @@ class TaskController extends Notifier<TaskControllerState> {
       final defaultUserId = await ref.read(defaultUserIdProvider.future);
       final tasks = await _taskService.getTasks(userId: defaultUserId);
       state = state.copyWith(tasks: tasks, isLoading: false);
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -85,7 +94,7 @@ class TaskController extends Notifier<TaskControllerState> {
 
       // 할 일 목록 새로고침
       await loadTasks();
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -118,7 +127,7 @@ class TaskController extends Notifier<TaskControllerState> {
 
       // 할 일 목록 새로고침
       await loadTasks();
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -136,7 +145,7 @@ class TaskController extends Notifier<TaskControllerState> {
 
       // 할 일 목록 새로고침
       await loadTasks();
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -163,7 +172,7 @@ class TaskController extends Notifier<TaskControllerState> {
 
       // 최신 상태 유지
       await loadTasks();
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(error: e.toString());
       rethrow;
     }

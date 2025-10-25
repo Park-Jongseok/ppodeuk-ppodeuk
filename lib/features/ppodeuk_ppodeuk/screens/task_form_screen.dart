@@ -6,9 +6,14 @@ import 'package:template/features/ppodeuk_ppodeuk/models/importance.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/period.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/task.dart';
 
+/// 청소를 생성하거나 수정하는 폼 화면
 class TaskFormScreen extends ConsumerStatefulWidget {
+  /// [TaskFormScreen]을 생성합니다.
+  ///
+  /// [task]가 주어지면 해당 청소를 수정하는 모드로 동작합니다.
   const TaskFormScreen({super.key, this.task});
 
+  /// 편집할 청소. 없으면 신규 생성 모드로 동작합니다.
   final Task? task;
 
   @override
@@ -86,7 +91,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         if (mounted) {
           Navigator.pop(context);
         }
-      } catch (e) {
+      } on Exception catch (e) {
         if (mounted) {
           // 에러 메시지 표시
           ScaffoldMessenger.of(context).showSnackBar(
@@ -101,7 +106,9 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   }
 
   Future<void> _delete() async {
-    if (widget.task == null) return;
+    if (widget.task == null) {
+      return;
+    }
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -129,7 +136,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         if (mounted) {
           Navigator.pop(context);
         }
-      } catch (e) {
+      } on Exception catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -186,7 +193,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: ListView(
@@ -205,7 +212,10 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
-                value: spaceState.spaces.isNotEmpty ? _spaceId : null,
+                key: ValueKey<String>(
+                  'space-${spaceState.spaces.isNotEmpty ? _spaceId : "empty"}',
+                ),
+                initialValue: spaceState.spaces.isNotEmpty ? _spaceId : null,
                 decoration: InputDecoration(
                   labelText: '공간',
                   hintText: spaceState.isLoading
@@ -233,7 +243,8 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<Importance>(
-                value: _importance,
+                key: ValueKey(_importance),
+                initialValue: _importance,
                 decoration: const InputDecoration(labelText: '중요도'),
                 items: Importance.values.map((importance) {
                   return DropdownMenuItem(
@@ -251,7 +262,8 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<Period>(
-                value: _period,
+                key: ValueKey(_period),
+                initialValue: _period,
                 decoration: const InputDecoration(labelText: '주기'),
                 items: Period.values.map((period) {
                   return DropdownMenuItem(

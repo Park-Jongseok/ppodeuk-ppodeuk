@@ -13,6 +13,7 @@ import 'package:template/features/ppodeuk_ppodeuk/widgets/task_tile.dart';
 
 /// '전체 청소' 화면
 class AllTasksScreen extends ConsumerStatefulWidget {
+  /// [AllTasksScreen]을 생성합니다.
   const AllTasksScreen({super.key});
 
   @override
@@ -37,7 +38,6 @@ class _AllTasksScreenState extends ConsumerState<AllTasksScreen> {
     final defaultUserId = await ref.read(defaultUserIdProvider.future);
     return _taskRepository.getTasks(
       userId: defaultUserId,
-      includeCompleted: true,
     );
   }
 
@@ -58,7 +58,9 @@ class _AllTasksScreenState extends ConsumerState<AllTasksScreen> {
         builder: (context) => TaskFormScreen(task: task),
       ),
     );
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     await _refreshTasks();
     await ref.read(spaceControllerProvider.notifier).loadSpaces();
   }
@@ -130,7 +132,7 @@ class _AllTasksScreenState extends ConsumerState<AllTasksScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'allTasksFab',
-        onPressed: () => _navigateToTaskForm(),
+        onPressed: _navigateToTaskForm,
         child: const Icon(Icons.add),
       ),
     );
@@ -200,7 +202,7 @@ class _AllTasksScreenState extends ConsumerState<AllTasksScreen> {
     Map<int, Space> spacesById,
   ) {
     final colors = context.colors;
-    final Map<int, List<Task>> grouped = {};
+    final grouped = <int, List<Task>>{};
     for (final task in tasks) {
       grouped.putIfAbsent(task.spaceId, () => []).add(task);
     }

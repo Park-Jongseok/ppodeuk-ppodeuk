@@ -11,25 +11,34 @@ final spaceControllerProvider =
 
 /// 공간 컨트롤러 상태
 class SpaceControllerState {
+  /// 상태를 생성합니다.
   const SpaceControllerState({
     this.spaces = const [],
     this.isLoading = false,
     this.error,
   });
 
+  static const _unknownError = Object();
+
+  /// 등록된 공간 목록
   final List<Space> spaces;
+
+  /// 로딩 중 여부
   final bool isLoading;
+
+  /// 최근 발생한 오류 메시지
   final String? error;
 
+  /// 상태를 복사하면서 선택적으로 프로퍼티를 변경합니다.
   SpaceControllerState copyWith({
     List<Space>? spaces,
     bool? isLoading,
-    String? error,
+    Object? error = _unknownError,
   }) {
     return SpaceControllerState(
       spaces: spaces ?? this.spaces,
       isLoading: isLoading ?? this.isLoading,
-      error: error,
+      error: identical(error, _unknownError) ? this.error : error as String?,
     );
   }
 }
@@ -52,9 +61,9 @@ class SpaceController extends Notifier<SpaceControllerState> {
       // Provider를 통해 기본 사용자 ID를 가져옴
       final defaultUserId = await ref.read(defaultUserIdProvider.future);
       final spacesData = await _spaceRepository.getSpacesForUser(defaultUserId);
-      final spaces = spacesData.map((data) => Space.fromJson(data)).toList();
+      final spaces = spacesData.map(Space.fromJson).toList();
       state = state.copyWith(spaces: spaces, isLoading: false);
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -79,7 +88,7 @@ class SpaceController extends Notifier<SpaceControllerState> {
 
       // 공간 목록 새로고침
       await loadSpaces();
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -97,7 +106,7 @@ class SpaceController extends Notifier<SpaceControllerState> {
 
       // 공간 목록 새로고침
       await loadSpaces();
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -115,7 +124,7 @@ class SpaceController extends Notifier<SpaceControllerState> {
 
       // 공간 목록 새로고침
       await loadSpaces();
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
