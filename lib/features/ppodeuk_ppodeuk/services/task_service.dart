@@ -108,11 +108,15 @@ class TaskService {
 
   /// 특정 청소를 삭제합니다.
   Future<int> deleteTask(int id) async {
+    final task = await _taskRepository.getTask(id);
+    if (task == null) {
+      throw Exception('삭제할 청소를 찾을 수 없습니다.');
+    }
+
     final result = await _taskRepository.deleteTask(id);
 
-    // 공간 점수 업데이트 (삭제된 청소의 공간 ID를 알아야 하지만,
-    // 현재 구조에서는 공간 ID를 알 수 없으므로 전체 공간 점수를 업데이트해야 함)
-    // TODO(ppodeuk-team): 청소 삭제 시 해당 공간의 점수만 업데이트하도록 개선 필요
+    // 삭제된 청소가 속했던 공간의 점수를 최신 상태로 반영
+    await _scoreService.updateSpaceScore(task.spaceId);
 
     return result;
   }
