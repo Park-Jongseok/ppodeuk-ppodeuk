@@ -34,7 +34,7 @@ class DatabaseHelper {
     final databasesPath = await getDatabasesPath();
     final path = join(databasesPath, 'ppodeuk.db');
 
-    return await openDatabase(
+    return openDatabase(
       path,
       version: 1,
       onCreate: _onCreate,
@@ -66,9 +66,9 @@ class DatabaseHelper {
       )
     ''');
 
-    // UserSpaceMembers 테이블 생성 (N:M 관계, 가족 구성원)
+    // SpaceMemberships 테이블 생성 (N:M 관계, 가족 구성원)
     await db.execute('''
-      CREATE TABLE UserSpaceMembers (
+      CREATE TABLE SpaceMemberships (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         space_id INTEGER NOT NULL,
@@ -125,7 +125,7 @@ class DatabaseHelper {
 
     // 기본 사용자를 모든 공간의 멤버로 등록
     for (final spaceId in spaceIds) {
-      await db.insert('UserSpaceMembers', {
+      await db.insert('SpaceMemberships', {
         'user_id': defaultUserId,
         'space_id': spaceId,
         'role': 'owner',
@@ -143,7 +143,7 @@ class DatabaseHelper {
   /// 생성된 User의 ID를 반환합니다.
   Future<int> insertUser(Map<String, dynamic> user) async {
     final db = await database;
-    return await db.insert('Users', user);
+    return db.insert('Users', user);
   }
 
   /// 특정 사용자 정보를 조회합니다.
@@ -160,10 +160,25 @@ class DatabaseHelper {
     return results.isNotEmpty ? results.first : null;
   }
 
-  /// 모든 사용자 목록을 조회합니다.
-  Future<List<Map<String, dynamic>>> getUsers() async {
+  /// 사용자와 같은 공간에 속한 다른 모든 사용자를 조회합니다.
+  ///
+  /// `userId`는 필수이며, 해당 사용자와 하나 이상의 공통된 공간에 속한
+  /// 다른 사용자들의 목록을 반환합니다. 자기 자신은 제외됩니다.
+  Future<List<Map<String, dynamic>>> getUsersInSharedSpaces({
+    required int userId,
+  }) async {
     final db = await database;
-    return await db.query('Users', orderBy: 'created_at DESC');
+    return db.rawQuery(
+      '''
+      SELECT DISTINCT u.* FROM Users u
+      INNER JOIN SpaceMemberships sm ON u.id = sm.user_id
+      WHERE sm.space_id IN (
+        SELECT space_id FROM SpaceMemberships WHERE user_id = ?
+      ) AND u.id != ?
+      ORDER BY u.name ASC
+    ''',
+      [userId, userId],
+    );
   }
 
   /// 사용자 정보를 업데이트합니다.
@@ -172,7 +187,7 @@ class DatabaseHelper {
   /// 업데이트된 행의 개수를 반환합니다.
   Future<int> updateUser(int id, Map<String, dynamic> user) async {
     final db = await database;
-    return await db.update(
+    return db.update(
       'Users',
       user,
       where: 'id = ?',
@@ -186,7 +201,7 @@ class DatabaseHelper {
   /// 관련된 멤버십 및 할당된 태스크도 자동으로 처리됩니다.
   Future<int> deleteUser(int id) async {
     final db = await database;
-    return await db.delete(
+    return db.delete(
       'Users',
       where: 'id = ?',
       whereArgs: [id],
@@ -203,26 +218,7 @@ class DatabaseHelper {
   /// 생성된 Space의 ID를 반환합니다.
   Future<int> insertSpace(Map<String, dynamic> space) async {
     final db = await database;
-    return await db.insert('Spaces', space);
-  }
-
-  /// 모든 공간 목록을 조회합니다.
-  ///
-  /// [userId]가 제공되면 해당 사용자가 속한 공간만 조회합니다.
-  Future<List<Map<String, dynamic>>> getSpaces({int? userId}) async {
-    final db = await database;
-
-    if (userId != null) {
-      // JOIN을 통해 사용자가 속한 공간만 조회
-      return await db.rawQuery('''
-        SELECT s.* FROM Spaces s
-        INNER JOIN UserSpaceMembers usm ON s.id = usm.space_id
-        WHERE usm.user_id = ?
-        ORDER BY s.name ASC
-      ''', [userId]);
-    }
-
-    return await db.query('Spaces', orderBy: 'name ASC');
+    return db.insert('Spaces', space);
   }
 
   /// 특정 공간의 점수를 업데이트합니다.
@@ -231,7 +227,7 @@ class DatabaseHelper {
   /// 업데이트된 행의 개수를 반환합니다.
   Future<int> updateSpaceScore(int id, int score) async {
     final db = await database;
-    return await db.update(
+    return db.update(
       'Spaces',
       {'score': score},
       where: 'id = ?',
@@ -245,7 +241,7 @@ class DatabaseHelper {
   /// 관련된 멤버십 및 태스크도 자동으로 삭제됩니다.
   Future<int> deleteSpace(int id) async {
     final db = await database;
-    return await db.delete(
+    return db.delete(
       'Spaces',
       where: 'id = ?',
       whereArgs: [id],
@@ -253,53 +249,79 @@ class DatabaseHelper {
   }
 
   // ============================================================================
-  // UserSpaceMember CRUD 메소드
+  // SpaceMembership CRUD 메소드
   // ============================================================================
 
   /// 사용자를 공간의 멤버로 추가합니다.
   ///
   /// [membership] Map에는 user_id, space_id, role(선택) 정보가 포함되어야 합니다.
   /// 생성된 Membership의 ID를 반환합니다.
-  Future<int> insertUserSpaceMember(Map<String, dynamic> membership) async {
+  Future<int> insertSpaceMembership(Map<String, dynamic> membership) async {
     final db = await database;
-    return await db.insert('UserSpaceMembers', membership);
+    return db.insert('SpaceMemberships', membership);
   }
 
-  /// 특정 공간의 모든 멤버를 조회합니다.
+  /// 특정 공간의 멤버 목록을 조회합니다. (권한 체크)
   ///
-  /// [spaceId]에 해당하는 공간의 모든 멤버를 사용자 정보와 함께 반환합니다.
-  Future<List<Map<String, dynamic>>> getSpaceMembers(int spaceId) async {
+  /// `userId`는 필수이며, 해당 사용자가 `spaceId`에 속해 있을 경우에만
+  /// 해당 공간의 모든 멤버 목록을 반환합니다. 멤버가 아닐 경우 빈 목록을 반환합니다.
+  Future<List<Map<String, dynamic>>> getSpaceMembers({
+    required int spaceId,
+    required int userId,
+  }) async {
     final db = await database;
-    return await db.rawQuery('''
-      SELECT u.*, usm.role, usm.joined_at
+
+    // 1. 요청한 사용자가 해당 공간의 멤버인지 확인
+    final memberships = await db.query(
+      'SpaceMemberships',
+      where: 'user_id = ? AND space_id = ?',
+      whereArgs: [userId, spaceId],
+      limit: 1,
+    );
+
+    // 2. 멤버가 아니면 빈 목록을 반환하여 정보 노출 방지
+    if (memberships.isEmpty) {
+      return [];
+    }
+
+    // 3. 멤버가 맞으면 해당 공간의 모든 멤버를 조회
+    return db.rawQuery(
+      '''
+      SELECT u.*, sm.role, sm.joined_at
       FROM Users u
-      INNER JOIN UserSpaceMembers usm ON u.id = usm.user_id
-      WHERE usm.space_id = ?
-      ORDER BY usm.joined_at ASC
-    ''', [spaceId]);
+      INNER JOIN SpaceMemberships sm ON u.id = sm.user_id
+      WHERE sm.space_id = ?
+      ORDER BY sm.joined_at ASC
+    ''',
+      [spaceId],
+    );
   }
 
-  /// 특정 사용자가 속한 모든 공간을 조회합니다.
+  /// 특정 사용자가 속한 모든 공간 목록을 조회합니다. (멤버십 정보 포함)
   ///
-  /// [userId]에 해당하는 사용자가 속한 모든 공간을 멤버십 정보와 함께 반환합니다.
-  Future<List<Map<String, dynamic>>> getUserSpaces(int userId) async {
+  /// `userId`는 필수이며, 해당 사용자가 속한 모든 공간을
+  /// 멤버십 정보(`role`, `joined_at`)와 함께 반환합니다.
+  Future<List<Map<String, dynamic>>> getSpaces({required int userId}) async {
     final db = await database;
-    return await db.rawQuery('''
-      SELECT s.*, usm.role, usm.joined_at
+    return db.rawQuery(
+      '''
+      SELECT s.*, sm.role, sm.joined_at
       FROM Spaces s
-      INNER JOIN UserSpaceMembers usm ON s.id = usm.space_id
-      WHERE usm.user_id = ?
-      ORDER BY usm.joined_at ASC
-    ''', [userId]);
+      INNER JOIN SpaceMemberships sm ON s.id = sm.space_id
+      WHERE sm.user_id = ?
+      ORDER BY sm.joined_at ASC
+    ''',
+      [userId],
+    );
   }
 
   /// 멤버십을 삭제합니다 (사용자를 공간에서 제거).
   ///
   /// [userId]와 [spaceId]에 해당하는 멤버십을 삭제합니다.
-  Future<int> deleteUserSpaceMember(int userId, int spaceId) async {
+  Future<int> deleteSpaceMembership(int userId, int spaceId) async {
     final db = await database;
-    return await db.delete(
-      'UserSpaceMembers',
+    return db.delete(
+      'SpaceMemberships',
       where: 'user_id = ? AND space_id = ?',
       whereArgs: [userId, spaceId],
     );
@@ -315,43 +337,46 @@ class DatabaseHelper {
   /// 생성된 Task의 ID를 반환합니다.
   Future<int> insertTask(Map<String, dynamic> task) async {
     final db = await database;
-    return await db.insert('Tasks', task);
+    return db.insert('Tasks', task);
   }
 
-  /// 태스크 목록을 조회합니다.
+  /// 사용자가 속한 공간의 태스크 목록을 조회합니다.
   ///
-  /// [spaceId]가 제공되면 해당 공간의 태스크만 조회합니다.
-  /// [assignedUserId]가 제공되면 해당 사용자에게 배정된 태스크만 조회합니다.
-  /// [includeCompleted]가 false이면 완료되지 않은 태스크만 조회합니다.
+  /// `userId`는 필수이며, 해당 사용자가 멤버로 속한 공간의 태스크만 반환합니다.
+  ///
+  /// 선택적으로 [spaceId]나 [assignedUserId]를 제공하여 결과를 추가로 필터링할 수 있습니다.
+  /// [includeCompleted]가 false이면 완료된 태스크는 제외됩니다.
   Future<List<Map<String, dynamic>>> getTasks({
+    required int userId,
     int? spaceId,
     int? assignedUserId,
     bool includeCompleted = true,
   }) async {
     final db = await database;
-    final conditions = <String>[];
-    final args = <dynamic>[];
+
+    final conditions = <String>['sm.user_id = ?'];
+    final args = <dynamic>[userId];
 
     if (spaceId != null) {
-      conditions.add('space_id = ?');
+      conditions.add('t.space_id = ?');
       args.add(spaceId);
     }
-
     if (assignedUserId != null) {
-      conditions.add('assigned_user_id = ?');
+      conditions.add('t.assigned_user_id = ?');
       args.add(assignedUserId);
     }
-
     if (!includeCompleted) {
-      conditions.add('is_completed = 0');
+      conditions.add('t.is_completed = 0');
     }
 
-    return await db.query(
-      'Tasks',
-      where: conditions.isEmpty ? null : conditions.join(' AND '),
-      whereArgs: args.isEmpty ? null : args,
-      orderBy: 'due_date ASC',
-    );
+    final query =
+        '''
+        SELECT t.* FROM Tasks t
+        INNER JOIN SpaceMemberships sm ON t.space_id = sm.space_id
+        WHERE ${conditions.join(' AND ')}
+        ORDER BY t.due_date ASC
+      ''';
+    return db.rawQuery(query, args);
   }
 
   /// 태스크 정보를 업데이트합니다.
@@ -360,7 +385,7 @@ class DatabaseHelper {
   /// 업데이트된 행의 개수를 반환합니다.
   Future<int> updateTask(int id, Map<String, dynamic> task) async {
     final db = await database;
-    return await db.update(
+    return db.update(
       'Tasks',
       task,
       where: 'id = ?',
@@ -374,7 +399,7 @@ class DatabaseHelper {
   /// 삭제된 행의 개수를 반환합니다.
   Future<int> deleteTask(int id) async {
     final db = await database;
-    return await db.delete(
+    return db.delete(
       'Tasks',
       where: 'id = ?',
       whereArgs: [id],
@@ -398,7 +423,7 @@ class DatabaseHelper {
     if (results.isEmpty) {
       throw Exception('기본 사용자가 없습니다. 데이터베이스 초기화를 확인하세요.');
     }
-    return results.first['id'] as int;
+    return results.first['id']! as int;
   }
 
   /// MVP용: 기본 사용자가 속한 모든 공간을 조회합니다.
@@ -406,7 +431,22 @@ class DatabaseHelper {
   /// MVP에서는 단일 사용자의 공간만 조회합니다.
   Future<List<Map<String, dynamic>>> getDefaultUserSpaces() async {
     final defaultUserId = await getDefaultUserId();
-    return await getUserSpaces(defaultUserId);
+    return getSpaces(userId: defaultUserId);
+  }
+
+  /// MVP용: 기본 사용자가 접근 권한이 있는 모든 태스크를 조회합니다.
+  ///
+  /// MVP에서는 단일 사용자의 권한 기반으로 태스크를 조회합니다.
+  Future<List<Map<String, dynamic>>> getDefaultUserTasks({
+    int? assignedUserId,
+    bool includeCompleted = true,
+  }) async {
+    final defaultUserId = await getDefaultUserId();
+    return getTasks(
+      userId: defaultUserId,
+      assignedUserId: assignedUserId,
+      includeCompleted: includeCompleted,
+    );
   }
 
   /// 데이터베이스 연결을 닫습니다.
