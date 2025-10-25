@@ -39,7 +39,70 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     ).then((_) {
       // 돌아온 후 공간 목록 새로고침 (점수 업데이트 반영)
       ref.read(spaceControllerProvider.notifier).loadSpaces();
+      setState(() {}); // 할 일 목록도 새로고침
     });
+  }
+
+  /// 할 일을 날짜별로 그룹핑
+  Map<String, List<Task>> _groupTasksByDate(List<Task> tasks) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final overdueTasks = <Task>[];
+    final todayTasks = <Task>[];
+    final upcomingTasks = <Task>[];
+    final noDueDateTasks = <Task>[];
+
+    for (final task in tasks) {
+      if (task.isCompleted) {
+        continue; // 완료된 할 일은 제외
+      }
+
+      final createdDate = DateTime(
+        task.createdAt.year,
+        task.createdAt.month,
+        task.createdAt.day,
+      );
+
+      if (task.includeToday && createdDate.isAtSameMomentAs(today)) {
+        todayTasks.add(task);
+        continue;
+      }
+
+      if (task.dueDate == null) {
+        noDueDateTasks.add(task);
+      } else {
+        final dueDate = DateTime(
+          task.dueDate!.year,
+          task.dueDate!.month,
+          task.dueDate!.day,
+        );
+
+        if (dueDate.isBefore(today)) {
+          overdueTasks.add(task);
+        } else if (dueDate.isAtSameMomentAs(today)) {
+          todayTasks.add(task);
+        } else {
+          upcomingTasks.add(task);
+        }
+      }
+    }
+
+    return {
+      'overdue': overdueTasks,
+      'today': todayTasks,
+      'upcoming': upcomingTasks,
+      'noDueDate': noDueDateTasks,
+    };
+  }
+
+  /// 공간별로 할 일 그룹핑
+  Map<int, List<Task>> _groupTasksBySpace(List<Task> tasks) {
+    final grouped = <int, List<Task>>{};
+    for (final task in tasks) {
+      grouped.putIfAbsent(task.spaceId, () => []).add(task);
+    }
+    return grouped;
   }
 
   @override
@@ -99,17 +162,114 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
           body: RefreshIndicator(
             onRefresh: () async {
               await ref.read(spaceControllerProvider.notifier).loadSpaces();
+              setState(() {}); // 화면 새로고침
             },
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: spaceState.spaces.length,
-              itemBuilder: (context, index) {
-                final space = spaceState.spaces[index];
-                return _SpaceCategoryCard(
-                  space: space,
-                  taskRepository: _taskRepository,
-                  defaultUserId: defaultUserId,
-                  onTaskTap: _navigateToTaskForm,
+            child: FutureBuilder<List<Task>>(
+              future: _taskRepository.getTasks(userId: defaultUserId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      '할 일을 불러오는 중 오류가 발생했습니다.',
+                      style: AppTypography.body.copyWith(color: colors.error),
+                    ),
+                  );
+                }
+
+                final allTasks = snapshot.data ?? [];
+                final groupedByDate = _groupTasksByDate(allTasks);
+                final groupedBySpace = _groupTasksBySpace(allTasks);
+
+                return ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    // 기한이 지난 할 일
+                    if (groupedByDate['overdue']!.isNotEmpty)
+                      _TaskSection(
+                        title: '기한이 지난 할 일',
+                        icon: Icons.warning_amber_rounded,
+                        iconColor: colors.error,
+                        tasks: groupedByDate['overdue']!,
+                        spaces: spaceState.spaces,
+                        onTaskTap: _navigateToTaskForm,
+                      ),
+
+                    // 오늘 해야할 일
+                    if (groupedByDate['today']!.isNotEmpty)
+                      _TaskSection(
+                        title: '오늘 해야할 일',
+                        icon: Icons.today,
+                        iconColor: colors.warning,
+                        tasks: groupedByDate['today']!,
+                        spaces: spaceState.spaces,
+                        onTaskTap: _navigateToTaskForm,
+                      ),
+
+                    // 예정된 할 일
+                    if (groupedByDate['upcoming']!.isNotEmpty)
+                      _TaskSection(
+                        title: '예정된 할 일',
+                        icon: Icons.calendar_today,
+                        iconColor: colors.primary,
+                        tasks: groupedByDate['upcoming']!,
+                        spaces: spaceState.spaces,
+                        onTaskTap: _navigateToTaskForm,
+                      ),
+
+                    // 공간별 할 일
+                    if (groupedBySpace.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 24, bottom: 8),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.space_dashboard,
+                              size: 20,
+                              color: colors.textSecondary,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '공간별 할 일',
+                              style: AppTypography.title.copyWith(
+                                color: colors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ...spaceState.spaces.map((space) {
+                        final spaceTasks =
+                            groupedBySpace[int.parse(space.id)] ?? [];
+                        if (spaceTasks.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return _SpaceCategoryCard(
+                          space: space,
+                          tasks: spaceTasks,
+                          onTaskTap: _navigateToTaskForm,
+                        );
+                      }),
+                    ],
+
+                    // 모든 할 일이 없을 때
+                    if (allTasks.isEmpty)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Text(
+                            '등록된 할 일이 없습니다.\n+ 버튼을 눌러 할 일을 추가해보세요!',
+                            style: AppTypography.body.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
                 );
               },
             ),
@@ -124,18 +284,216 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
   }
 }
 
+/// 날짜별 할 일 섹션 위젯
+class _TaskSection extends StatelessWidget {
+  const _TaskSection({
+    required this.title,
+    required this.icon,
+    required this.iconColor,
+    required this.tasks,
+    required this.spaces,
+    required this.onTaskTap,
+  });
+
+  final String title;
+  final IconData icon;
+  final Color iconColor;
+  final List<Task> tasks;
+  final List<Space> spaces;
+  final void Function(Task) onTaskTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 섹션 헤더
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: iconColor, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: AppTypography.title.copyWith(
+                    color: colors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: iconColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${tasks.length}개',
+                    style: AppTypography.caption.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 할 일 목록
+          Column(
+            children: tasks.map((task) {
+              final space = spaces.firstWhere(
+                (s) => int.parse(s.id) == task.spaceId,
+                orElse: () => const Space(
+                  id: '0',
+                  name: '알 수 없음',
+                  score: 0,
+                ),
+              );
+
+              return _TaskListTile(
+                task: task,
+                space: space,
+                onTaskTap: onTaskTap,
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 할 일 리스트 타일 위젯
+class _TaskListTile extends StatelessWidget {
+  const _TaskListTile({
+    required this.task,
+    required this.space,
+    required this.onTaskTap,
+  });
+
+  final Task task;
+  final Space space;
+  final void Function(Task) onTaskTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return ListTile(
+      leading: Checkbox(
+        value: task.isCompleted,
+        // TODO(feature): 완료 상태 토글 기능 추가
+        onChanged: (_) {},
+      ),
+      title: Text(
+        task.name,
+        style: AppTypography.body.copyWith(
+          decoration:
+              task.isCompleted ? TextDecoration.lineThrough : null,
+          color: task.isCompleted
+              ? colors.textSecondary
+              : colors.textPrimary,
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 4),
+          Text(
+            '📍 ${space.name}',
+            style: AppTypography.caption.copyWith(
+              color: colors.primary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Text(
+                '중요도: ${task.importance.displayName}',
+                style: AppTypography.caption.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '주기: ${task.period.displayName}',
+                style: AppTypography.caption.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          if (task.dueDate != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              '마감: ${_formatDate(task.dueDate!)}',
+              style: AppTypography.caption.copyWith(
+                color: _isOverdue(task.dueDate!)
+                    ? colors.error
+                    : colors.textSecondary,
+              ),
+            ),
+          ],
+        ],
+      ),
+      trailing: IconButton(
+        icon: const Icon(Icons.edit, size: 20),
+        onPressed: () => onTaskTap(task),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final targetDate = DateTime(date.year, date.month, date.day);
+
+    if (targetDate == today) {
+      return '오늘';
+    } else if (targetDate == today.add(const Duration(days: 1))) {
+      return '내일';
+    } else if (targetDate == today.subtract(const Duration(days: 1))) {
+      return '어제';
+    } else {
+      return '${date.month}월 ${date.day}일';
+    }
+  }
+
+  bool _isOverdue(DateTime dueDate) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final targetDate = DateTime(dueDate.year, dueDate.month, dueDate.day);
+    return targetDate.isBefore(today);
+  }
+}
+
 /// 공간별 카테고리 카드 위젯
 class _SpaceCategoryCard extends StatelessWidget {
   const _SpaceCategoryCard({
     required this.space,
-    required this.taskRepository,
-    required this.defaultUserId,
+    required this.tasks,
     required this.onTaskTap,
   });
 
   final Space space;
-  final TaskRepository taskRepository;
-  final int defaultUserId;
+  final List<Task> tasks;
   final void Function(Task) onTaskTap;
 
   @override
@@ -182,7 +540,7 @@ class _SpaceCategoryCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '남은 점수',
+                        '현재 점수',
                         style: AppTypography.caption.copyWith(
                           color: Colors.white.withValues(alpha: 0.85),
                         ),
@@ -202,78 +560,14 @@ class _SpaceCategoryCard extends StatelessWidget {
             ),
           ),
           // 할 일 목록
-          FutureBuilder<List<Task>>(
-            future: taskRepository.getTasks(
-              userId: defaultUserId,
-              spaceId: int.parse(space.id),
-            ),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              if (snapshot.hasError) {
-                return Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    '할 일을 불러오는 중 오류가 발생했습니다.',
-                    style: AppTypography.caption.copyWith(
-                      color: colors.error,
-                    ),
-                  ),
-                );
-              }
-
-              final tasks = snapshot.data ?? [];
-
-              if (tasks.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    '이 공간에 할 일이 없습니다.',
-                    style: AppTypography.caption.copyWith(
-                      color: colors.textSecondary,
-                    ),
-                  ),
-                );
-              }
-
-              return Column(
-                children: tasks.map((task) {
-                  return ListTile(
-                    leading: Checkbox(
-                      value: task.isCompleted,
-                      // TODO(feature): 완료 상태 토글 기능 추가
-                      onChanged: (_) {},
-                    ),
-                    title: Text(
-                      task.name,
-                      style: AppTypography.body.copyWith(
-                        decoration: task.isCompleted
-                            ? TextDecoration.lineThrough
-                            : null,
-                        color: task.isCompleted
-                            ? colors.textSecondary
-                            : colors.textPrimary,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '중요도: ${task.importance.displayName} | 주기: ${task.period.displayName}',
-                      style: AppTypography.caption.copyWith(
-                        color: colors.textSecondary,
-                      ),
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.edit, size: 20),
-                      onPressed: () => onTaskTap(task),
-                    ),
-                  );
-                }).toList(),
+          Column(
+            children: tasks.map((task) {
+              return _TaskListTile(
+                task: task,
+                space: space,
+                onTaskTap: onTaskTap,
               );
-            },
+            }).toList(),
           ),
         ],
       ),
