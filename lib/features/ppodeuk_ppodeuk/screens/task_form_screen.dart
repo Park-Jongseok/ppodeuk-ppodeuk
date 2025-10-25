@@ -22,7 +22,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   late int _spaceId;
   late Importance _importance;
   late Period _period;
-  DateTime? _dueDate;
+  DateTime? _startDate;
 
   @override
   void initState() {
@@ -32,13 +32,13 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
       _spaceId = widget.task!.spaceId;
       _importance = widget.task!.importance;
       _period = widget.task!.period;
-      _dueDate = widget.task!.dueDate;
+      _startDate = widget.task!.startDate;
     } else {
       _name = '';
       _spaceId = 1; // 기본값, 공간 로드 후 첫 번째 공간으로 설정됨
       _importance = Importance.normal;
       _period = Period.weekly;
-      _dueDate = null;
+      _startDate = DateTime.now(); // 기본값: 오늘
     }
 
     // 공간 데이터 로드
@@ -63,23 +63,23 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         final taskController = ref.read(taskControllerProvider.notifier);
 
         if (widget.task == null) {
-          // 새 할 일 추가
+          // 새 청소 추가
           await taskController.createTask(
             name: _name,
             spaceId: _spaceId,
             importance: _importance,
             period: _period,
-            dueDate: _dueDate,
+            startDate: _startDate,
           );
         } else {
-          // 기존 할 일 수정
+          // 기존 청소 수정
           await taskController.updateTask(
             taskId: widget.task!.id,
             name: _name,
             spaceId: _spaceId,
             importance: _importance,
             period: _period,
-            dueDate: _dueDate,
+            startDate: _startDate,
           );
         }
 
@@ -107,7 +107,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('삭제 확인'),
-        content: const Text('정말로 이 할 일을 삭제하시겠습니까?'),
+        content: const Text('정말로 이 청소를 삭제하시겠습니까?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -142,16 +142,19 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     }
   }
 
-  Future<void> _selectDueDate(BuildContext context) async {
+  Future<void> _selectStartDate(BuildContext context) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: _dueDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
+      initialDate: _startDate ?? today,
+      firstDate: today, // 오늘 이전 날짜 선택 불가
       lastDate: DateTime(2101),
     );
-    if (picked != null && picked != _dueDate) {
+    if (picked != null && picked != _startDate) {
       setState(() {
-        _dueDate = picked;
+        _startDate = picked;
       });
     }
   }
@@ -163,7 +166,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.task == null ? '할 일 추가' : '할 일 수정'),
+        title: Text(widget.task == null ? '청소 추가' : '청소 수정'),
         actions: [
           if (widget.task != null)
             IconButton(
@@ -191,10 +194,10 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
               TextFormField(
                 initialValue: _name,
                 enabled: !taskState.isLoading,
-                decoration: const InputDecoration(labelText: '할 일 이름'),
+                decoration: const InputDecoration(labelText: '청소 이름'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return '할 일 이름을 입력하세요.';
+                    return '청소 이름을 입력하세요.';
                   }
                   return null;
                 },
@@ -267,18 +270,22 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
               const SizedBox(height: 16),
               Row(
                 children: [
+                  const Icon(Icons.calendar_today, size: 20),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _dueDate == null
-                          ? '마감일 미설정'
-                          : '마감일: ${_dueDate!.toLocal()}'.split(' ')[0],
+                      _startDate == null
+                          ? '시작일 미설정'
+                          : '시작일: ${_formatDate(_startDate!)}',
+                      style: const TextStyle(fontSize: 16),
                     ),
                   ),
-                  TextButton(
+                  IconButton(
+                    icon: const Icon(Icons.edit_calendar),
                     onPressed: taskState.isLoading
                         ? null
-                        : () => _selectDueDate(context),
-                    child: const Text('선택'),
+                        : () => _selectStartDate(context),
+                    tooltip: '시작일 선택',
                   ),
                 ],
               ),
@@ -287,5 +294,10 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         ),
       ),
     );
+  }
+
+  /// 날짜를 형식화합니다 (예: 2025.10.26)
+  String _formatDate(DateTime date) {
+    return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
   }
 }

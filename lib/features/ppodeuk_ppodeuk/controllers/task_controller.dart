@@ -68,7 +68,7 @@ class TaskController extends Notifier<TaskControllerState> {
     required int spaceId,
     required Importance importance,
     required Period period,
-    DateTime? dueDate,
+    DateTime? startDate,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
 
@@ -78,7 +78,7 @@ class TaskController extends Notifier<TaskControllerState> {
         'space_id': spaceId,
         'importance': importance.index,
         'period': period.index,
-        'due_date': dueDate?.toIso8601String(),
+        'start_date': startDate?.toIso8601String(),
       };
 
       await _taskService.createTask(taskData);
@@ -101,7 +101,7 @@ class TaskController extends Notifier<TaskControllerState> {
     required int spaceId,
     required Importance importance,
     required Period period,
-    DateTime? dueDate,
+    DateTime? startDate,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
 
@@ -111,7 +111,7 @@ class TaskController extends Notifier<TaskControllerState> {
         'space_id': spaceId,
         'importance': importance.index,
         'period': period.index,
-        'due_date': dueDate?.toIso8601String(),
+        'start_date': startDate?.toIso8601String(),
       };
 
       await _taskService.updateTask(taskId, taskData);
@@ -148,5 +148,24 @@ class TaskController extends Notifier<TaskControllerState> {
   /// 에러 상태 초기화
   void clearError() {
     state = state.copyWith(error: null);
+  }
+
+  /// 할 일 완료 상태 설정
+  Future<void> setTaskCompletion({
+    required int taskId,
+    required bool isCompleted,
+  }) async {
+    try {
+      await _taskService.setTaskCompletion(
+        taskId: taskId,
+        isCompleted: isCompleted,
+      );
+
+      // 최신 상태 유지
+      await loadTasks();
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      rethrow;
+    }
   }
 }

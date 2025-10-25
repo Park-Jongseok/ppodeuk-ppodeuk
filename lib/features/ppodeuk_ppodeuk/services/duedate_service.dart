@@ -14,13 +14,13 @@ class DueDateService {
     }
 
     // dueDate가 null이 아닐 경우에만 다음 마감일 계산
-    if (task.dueDate == null) {
+    if (task.startDate == null) {
       throw ArgumentError(
         'Cannot update due date for a task with no initial due date.',
       );
     }
 
-    final nextDueDate = calculateNextDueDate(task.dueDate!, task.period);
+    final nextDueDate = calculateNextDueDate(task.startDate!, task.period);
 
     await _taskRepository.updateTask(
       taskId,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:template/features/ppodeuk_ppodeuk/screens/all_tasks_screen.dart';
 import 'package:template/features/ppodeuk_ppodeuk/screens/dashboard_screen.dart';
-import 'package:template/features/ppodeuk_ppodeuk/screens/task_list_screen.dart';
+import 'package:template/features/ppodeuk_ppodeuk/screens/today_tasks_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -14,12 +15,14 @@ class _MainScreenState extends State<MainScreen> {
 
   static const List<Widget> _widgetOptions = <Widget>[
     DashboardScreen(),
-    TaskListScreen(),
+    TodayTasksScreen(),
+    AllTasksScreen(),
   ];
 
   static const List<String> _widgetTitles = <String>[
     '대시보드',
-    '청소 목록',
+    '오늘의 청소',
+    '전체 청소',
   ];
 
   void _onItemTapped(int index) {
@@ -34,8 +37,9 @@ class _MainScreenState extends State<MainScreen> {
       appBar: AppBar(
         title: Text(_widgetTitles[_selectedIndex]),
       ),
-      body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _widgetOptions,
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
@@ -44,8 +48,12 @@ class _MainScreenState extends State<MainScreen> {
             label: '대시보드',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.list),
-            label: '청소 목록',
+            icon: Icon(Icons.today),
+            label: '오늘의 청소',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.view_list),
+            label: '전체 청소',
           ),
         ],
         currentIndex: _selectedIndex,

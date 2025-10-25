@@ -89,7 +89,7 @@ class DatabaseHelper {
         assigned_user_id INTEGER,
         importance INTEGER NOT NULL,
         period INTEGER NOT NULL,
-        due_date TEXT,
+        start_date TEXT,
         is_completed INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (space_id) REFERENCES Spaces (id) ON DELETE CASCADE,
@@ -336,7 +336,7 @@ class DatabaseHelper {
 
   /// 새로운 태스크를 추가합니다.
   ///
-  /// [task] Map에는 name, space_id, importance, period, assigned_user_id(선택), due_date(선택) 정보가 포함되어야 합니다.
+  /// [task] Map에는 name, space_id, importance, period, assigned_user_id(선택), start_date(선택) 정보가 포함되어야 합니다.
   /// 생성된 Task의 ID를 반환합니다.
   Future<int> insertTask(Map<String, dynamic> task) async {
     final db = await database;
@@ -377,7 +377,7 @@ class DatabaseHelper {
         SELECT t.* FROM Tasks t
         INNER JOIN SpaceMemberships sm ON t.space_id = sm.space_id
         WHERE ${conditions.join(' AND ')}
-        ORDER BY t.due_date ASC
+        ORDER BY t.start_date ASC
       ''';
     return db.rawQuery(query, args);
   }

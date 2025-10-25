@@ -13,7 +13,7 @@ class Task {
     required this.importance,
     required this.period,
     this.assignedUserId,
-    this.dueDate,
+    this.startDate,
     this.isCompleted = false,
     required this.createdAt,
   });
@@ -27,8 +27,8 @@ class Task {
       assignedUserId: json['assigned_user_id'] as int?,
       importance: Importance.values[json['importance'] as int],
       period: Period.values[json['period'] as int],
-      dueDate: json['due_date'] != null
-          ? DateTime.parse(json['due_date'] as String)
+      startDate: json['start_date'] != null
+          ? DateTime.parse(json['start_date'] as String)
           : null,
       isCompleted: (json['is_completed'] as int? ?? 0) == 1,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -53,8 +53,8 @@ class Task {
   /// 주기
   final Period period;
 
-  /// 마감일 (선택적)
-  final DateTime? dueDate;
+  /// 시작일 (선택적)
+  final DateTime? startDate;
 
   /// 완료 여부
   final bool isCompleted;
@@ -71,7 +71,7 @@ class Task {
       'assigned_user_id': assignedUserId,
       'importance': importance.index,
       'period': period.index,
-      'due_date': dueDate?.toIso8601String(),
+      'start_date': startDate?.toIso8601String(),
       'is_completed': isCompleted ? 1 : 0,
       'created_at': createdAt.toIso8601String(),
     };
@@ -84,7 +84,7 @@ class Task {
     int? assignedUserId,
     Importance? importance,
     Period? period,
-    DateTime? dueDate,
+    DateTime? startDate,
     bool? isCompleted,
     DateTime? createdAt,
   }) {
@@ -95,7 +95,7 @@ class Task {
       assignedUserId: assignedUserId ?? this.assignedUserId,
       importance: importance ?? this.importance,
       period: period ?? this.period,
-      dueDate: dueDate ?? this.dueDate,
+      startDate: startDate ?? this.startDate,
       isCompleted: isCompleted ?? this.isCompleted,
       createdAt: createdAt ?? this.createdAt,
     );
