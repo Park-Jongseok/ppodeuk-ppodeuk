@@ -20,6 +20,13 @@ class SpaceRepository {
     return _databaseHelper.getSpaces(userId: userId);
   }
 
+  /// 모든 공간의 이름과 점수 목록을 반환합니다.
+  ///
+  /// 결과는 `id`, `name`, `score`를 키로 가지는 Map 리스트입니다.
+  Future<List<Map<String, dynamic>>> getSpaceScores() {
+    return _databaseHelper.getSpaceScores();
+  }
+
   /// 공간 점수를 업데이트합니다.
   Future<int> updateSpaceScore(int id, int score) {
     return _databaseHelper.updateSpaceScore(id, score);

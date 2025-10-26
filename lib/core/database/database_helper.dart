@@ -328,6 +328,20 @@ class DatabaseHelper {
     );
   }
 
+  /// 모든 공간의 이름과 점수를 조회합니다.
+  ///
+  /// MVP에서는 단일 사용자 시나리오이지만, 확장성을 고려하여
+  /// 모든 공간을 한 번에 조회하는 헬퍼 메소드를 제공합니다.
+  /// 결과는 `id`, `name`, `score` 키를 포함한 Map 리스트입니다.
+  Future<List<Map<String, dynamic>>> getSpaceScores() async {
+    final db = await database;
+    return db.query(
+      'Spaces',
+      columns: ['id', 'name', 'score'],
+      orderBy: 'id ASC',
+    );
+  }
+
   // ============================================================================
   // SpaceMembership CRUD 메소드
   // ============================================================================

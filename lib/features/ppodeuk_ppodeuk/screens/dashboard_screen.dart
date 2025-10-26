@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:template/core/repositories/space_repository.dart';
 import 'package:template/core/themes/app_colors.dart';
 import 'package:template/core/themes/app_typography.dart';
 import 'package:template/features/ppodeuk_ppodeuk/controllers/space_controller.dart';
 import 'package:template/features/ppodeuk_ppodeuk/models/space.dart';
+import 'package:template/features/ppodeuk_ppodeuk/services/pet_message_service.dart';
 import 'package:template/features/ppodeuk_ppodeuk/services/score_service.dart';
 
 /// 대시보드 화면
@@ -17,7 +19,10 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final _scoreService = ScoreService();
+  final _petMessageService = PetMessageService();
+  final _spaceRepository = SpaceRepository();
   Map<int, int> _calculatedScores = {};
+  String? _petMessage;
 
   @override
   void initState() {
@@ -30,6 +35,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Future<void> _loadAndCalculateScores() async {
     await ref.read(spaceControllerProvider.notifier).loadSpaces();
     await _calculateAllScores();
+    await _refreshPetMessage();
   }
 
   Future<void> _calculateAllScores() async {
@@ -40,13 +46,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       final spaceId = int.parse(space.id);
       final score = await _scoreService.calculateSpaceScore(spaceId);
       scores[spaceId] = score;
+      await _spaceRepository.updateSpaceScore(spaceId, score);
     }
 
-    if (mounted) {
-      setState(() {
-        _calculatedScores = scores;
-      });
+    if (!mounted) {
+      return;
     }
+
+    setState(() {
+      _calculatedScores = scores;
+    });
   }
 
   Future<void> _refreshSpaces() async {
@@ -62,6 +71,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       }
       return space;
     }).toList();
+  }
+
+  Future<void> _refreshPetMessage() async {
+    final spaceMaps = await _spaceRepository.getSpaceScores();
+    final spaces = spaceMaps.map(Space.fromJson).toList();
+    final message = _petMessageService.decideMessage(spaces);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _petMessage = message;
+    });
   }
 
   Color _getScoreColor(int score, AppColors colors) {
@@ -92,8 +115,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final spaceState = ref.watch(spaceControllerProvider);
 
     // 점수 계산이 완료될 때까지 로딩 표시
-    if ((spaceState.isLoading && spaceState.spaces.isEmpty) ||
-        _calculatedScores.isEmpty) {
+    final isCalculatingScores = (spaceState.isLoading &&
+            spaceState.spaces.isEmpty) ||
+        (spaceState.spaces.isNotEmpty && _calculatedScores.isEmpty);
+
+    if (isCalculatingScores) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
@@ -160,6 +186,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            if (_petMessage != null) ...[
+              Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                color: colors.primary.withValues(alpha: 0.08),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  child: Text(
+                    _petMessage!,
+                    style: AppTypography.body.copyWith(
+                      color: colors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ],
             // 헤더
             Padding(
               padding: const EdgeInsets.only(bottom: 24),
